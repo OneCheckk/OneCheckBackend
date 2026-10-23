@@ -59,8 +59,36 @@ const download = asyncHandler(async (req, res) => {
   fileStream.pipe(res);
 });
 
+const runOcr = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const result = await documentService.runDocumentOcr(req.user, req.params.docId, requestId);
+
+  res.status(200).json({
+    success: true,
+    data: result,
+    meta: {
+      requestId
+    }
+  });
+});
+
+const runEla = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const result = await documentService.runDocumentEla(req.user, req.params.docId, requestId);
+
+  res.status(200).json({
+    success: true,
+    data: result,
+    meta: {
+      requestId
+    }
+  });
+});
+
 module.exports = {
   upload,
   getMetadata,
-  download
+  download,
+  runOcr,
+  runEla
 };

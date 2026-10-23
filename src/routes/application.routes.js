@@ -1,5 +1,6 @@
 const express = require('express');
 const applicationController = require('../controllers/application.controller');
+const checkRunController = require('../controllers/checkRun.controller');
 const authenticate = require('../middleware/authenticate');
 const { authorize } = require('../middleware/authorize');
 const validate = require('../middleware/validate');
@@ -40,5 +41,16 @@ router.post(
   authorize('INSTITUTION_USER', 'ADMIN'),
   applicationController.submitApplication
 );
+
+// Canonical: POST /api/applications/:id/run-checks (OFFICER / ADMIN)
+router.post(
+  '/:id/run-checks',
+  authenticate,
+  authorize('OFFICER', 'ADMIN'),
+  checkRunController.startChecks
+);
+
+// Canonical: GET /api/applications/:id/runs/:runId (Role + ownership check)
+router.get('/:id/runs/:runId', authenticate, checkRunController.getRunStatus);
 
 module.exports = router;

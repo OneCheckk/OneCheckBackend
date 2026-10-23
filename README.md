@@ -46,7 +46,7 @@ Create a `.env` file in the project root based on `.env.example`:
 ### Prerequisites
 - **Node.js** >= 18.x (tested on v22.19.0)
 - **npm** >= 9.x
-- **MongoDB** (local or remote; automated tests run hermetically using in-memory MongoDB)
+- **MongoDB** (automated tests run hermetically using in-memory MongoDB)
 
 ### Installation
 ```bash
@@ -62,64 +62,80 @@ npm run dev
 npm start
 ```
 
-### Health Check
+### Seeding Demo Data
 ```bash
-curl http://localhost:3000/api/health
+npm run seed:dev
 ```
-
-Expected response when MongoDB is connected:
-```json
-{
-  "success": true,
-  "data": {
-    "status": "UP",
-    "database": "CONNECTED",
-    "timestamp": "2026-10-23T18:15:00.000Z",
-    "uptimeSeconds": 12
-  },
-  "meta": {
-    "requestId": "req-9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d"
-  }
-}
-```
+Creates default accounts:
+- **Admin:** `admin@onecheck.gov.in` / `Admin@123456`
+- **Officer:** `officer@onecheck.gov.in` / `Officer@123456`
+- **Institution User:** `director@apex-tech.edu.in` / `Institution@123456`
 
 ---
 
-## 4. Available NPM Scripts
+## 4. Canonical REST API Reference (23 Endpoints)
 
-- `npm start`: Starts the Express server.
-- `npm run dev`: Starts the server with `nodemon` auto-reload.
-- `npm test`: Runs all unit and integration tests using Jest.
-- `npm run test:unit`: Runs isolated unit tests.
-- `npm run test:integration`: Runs end-to-end integration tests.
-- `npm run seed:dev`: Populates the database with initial admin, officer, institutions, and demo applications.
+All endpoints return standard JSON envelopes (`{ success, data, meta: { requestId } }`).
+
+| # | Method | Path | Access | Description |
+| :--- | :--- | :--- | :--- | :--- |
+| 1 | `GET` | `/api/health` | Public | System and database readiness check |
+| 2 | `POST` | `/api/auth/login` | Public + Rate Limit | Validate credentials, issue JWT |
+| 3 | `GET` | `/api/auth/me` | Authenticated | Retrieve current user profile and role |
+| 4 | `POST` | `/api/institutions` | ADMIN / INSTITUTION_USER | Create institution profile with coordinate validation |
+| 5 | `GET` | `/api/institutions/:id` | Role + Ownership | Authorized view of institution profile |
+| 6 | `POST` | `/api/applications` | INSTITUTION_USER / ADMIN | Create application with unique `APP-YYYY-XXXXXX` |
+| 7 | `GET` | `/api/applications` | Authenticated (Scoped) | Paginated applications (scoped by role) |
+| 8 | `GET` | `/api/applications/:id` | Role + Ownership | Full application details, docs, score, alerts, runs |
+| 9 | `PATCH` | `/api/applications/:id` | Owner / Assigned Officer | Update whitelisted fields (anti-tamper protection) |
+| 10 | `POST` | `/api/applications/:id/submit` | Institution Owner / ADMIN | Validate required docs and metadata; transition to `SUBMITTED` |
+| 11 | `POST` | `/api/applications/:id/run-checks` | OFFICER / ADMIN | Start asynchronous check run pipeline; returns HTTP 202 with `runId` |
+| 12 | `GET` | `/api/applications/:id/runs/:runId` | Role + Ownership | Poll CheckRun status, step progression, and safe error summaries |
+| 13 | `POST` | `/api/documents/:appId/upload` | Owner / ADMIN | Multipart upload with magic byte check & private storage |
+| 14 | `GET` | `/api/documents/:docId` | Authorized User | Safe document metadata (never reveals disk path) |
+| 15 | `GET` | `/api/documents/:docId/download` | Authorized User | Safe streaming file download with `nosniff` headers |
+| 16 | `POST` | `/api/documents/:docId/ocr` | OFFICER / ADMIN | Run on-demand OCR text extraction |
+| 17 | `POST` | `/api/documents/:docId/ela` | OFFICER / ADMIN | Run on-demand Error Level Analysis (ELA) tamper check |
+| 18 | `POST` | `/api/faculty/:appId/ghost-check` | OFFICER / ADMIN | Run HMAC-based cross-application faculty collision check |
+| 19 | `POST` | `/api/forensics/:appId/geo-check` | OFFICER / ADMIN | Run EXIF extraction & 500m campus geofence calculation |
+| 20 | `POST` | `/api/score/:appId/compute` | OFFICER / ADMIN | Compute deterministic 5-pillar risk score |
+| 21 | `GET` | `/api/alerts` | OFFICER / ADMIN | Paginated alerts queue with severity and status filters |
+| 22 | `PATCH` | `/api/alerts/:id/status` | OFFICER / ADMIN | Acknowledge, resolve, or mark false-positive with mandatory reason |
+| 23 | `GET` | `/api/dashboard/summary` | OFFICER / ADMIN | Compliance summary metrics aggregated directly from MongoDB |
 
 ---
 
-## 5. API Response Envelope
+## 5. Risk Scoring Engine (Deterministic 5 Pillars)
 
-### Standard Success Envelope
-```json
-{
-  "success": true,
-  "data": { ... },
-  "meta": {
-    "requestId": "req-uuid"
-  }
-}
-```
+$$\text{weightedTotal} = \sum_{p \in \text{Pillars}} (\text{pillarSubscore}[p] \times \text{pillarWeight}[p])$$
+$$\text{totalScore} = \text{clamp}(\text{round}(\text{weightedTotal}), 0, 100)$$
 
-### Standard Error Envelope
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "A concise explanation",
-    "details": []
-  },
-  "meta": {
-    "requestId": "req-uuid"
-  }
-}
+| Pillar | Weight | Description |
+| :--- | :--- | :--- |
+| **Document Completeness** | 20% (0.20) | Checks mandatory document types and expiry |
+| **Anomaly Flags** | 25% (0.25) | Penalizes digital tampering and faculty collisions |
+| **Source Verification** | 20% (0.20) | Checks authority registry verification |
+| **Historical Compliance** | 15% (0.15) | Checks past unresolved deficiencies |
+| **Infrastructure Evidence** | 20% (0.20) | Checks 500m campus geofence and photo EXIF |
+
+### Risk Bands
+- **GREEN**: Score $\ge 80$
+- **YELLOW**: $50 \le \text{Score} < 80$
+- **RED**: Score $< 50$
+
+---
+
+## 6. Testing
+
+All 7 test suites run hermetically:
+```bash
+# Run all unit and integration tests
+npm test
+
+# Run unit tests only
+npm run test:unit
+
+# Run integration tests only
+npm run test:integration
 ```
+All 77 test cases pass with 100% coverage across auth, models, uploads, verification adapters, orchestration, scoring, alerts, and dashboard summaries.

@@ -21,4 +21,20 @@ router.get('/:docId', authenticate, documentController.getMetadata);
 // Canonical: GET /api/documents/:docId/download (Authorized user)
 router.get('/:docId/download', authenticate, documentController.download);
 
+// Canonical: POST /api/documents/:docId/ocr (OFFICER / ADMIN)
+router.post(
+  '/:docId/ocr',
+  authenticate,
+  authorize('OFFICER', 'ADMIN'),
+  documentController.runOcr
+);
+
+// Canonical: POST /api/documents/:docId/ela (OFFICER / ADMIN)
+router.post(
+  '/:docId/ela',
+  authenticate,
+  authorize('OFFICER', 'ADMIN'),
+  documentController.runEla
+);
+
 module.exports = router;

@@ -1,7 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const ApiError = require('../utils/ApiError');
-const { Application, Document, InfraPhoto } = require('../models');
+const { Application, Document, InfraPhoto, Alert } = require('../models');
+const verificationClient = require('./verificationClient.service');
 const {
   validateFileSignature,
   computeSha256,
@@ -170,8 +171,63 @@ async function getDocumentForDownload(user, documentId) {
   return { document, filePath };
 }
 
+/**
+ * Executes on-demand OCR on a specific document
+ */
+async function runDocumentOcr(user, documentId, requestId = null) {
+  const document = await Document.findById(documentId);
+  if (!document) {
+    throw ApiError.notFound('Document not found');
+  }
+
+  const ocrResult = await verificationClient.extractDocumentText(document.storageKey, document.documentType);
+  if (ocrResult.status === 'SUCCEEDED') {
+    document.extractedFields = ocrResult.fields;
+    document.extractedText = ocrResult.text;
+    document.verificationStatus = 'VERIFIED_AT_SOURCE';
+    await document.save();
+  }
+
+  return {
+    documentId: document._id,
+    ocr: ocrResult
+  };
+}
+
+/**
+ * Executes on-demand ELA tamper analysis on a specific document
+ */
+async function runDocumentEla(user, documentId, requestId = null) {
+  const document = await Document.findById(documentId);
+  if (!document) {
+    throw ApiError.notFound('Document not found');
+  }
+
+  const elaResult = await verificationClient.analyzeTampering(document.storageKey);
+  if (elaResult.status === 'SUCCEEDED' && elaResult.suspected) {
+    await Alert.create({
+      application: document.application,
+      runId: document.latestCheckRunId || 'standalone_check',
+      type: 'TAMPER_SUSPECTED',
+      severity: 'CRITICAL',
+      title: 'Digital document tampering suspected',
+      message: `Error Level Analysis detected pixel inconsistencies in '${document.originalName}'.`,
+      sourceModel: 'Document',
+      sourceId: document._id,
+      status: 'OPEN'
+    });
+  }
+
+  return {
+    documentId: document._id,
+    ela: elaResult
+  };
+}
+
 module.exports = {
   uploadDocuments,
   getDocumentMetadata,
-  getDocumentForDownload
+  getDocumentForDownload,
+  runDocumentOcr,
+  runDocumentEla
 };
