@@ -14,6 +14,8 @@ function sanitizeAuditMetadata(metadata) {
     const lowerKey = key.toLowerCase();
     if (SENSITIVE_FIELDS.some((s) => lowerKey.includes(s))) {
       clean[key] = '[REDACTED]';
+    } else if (value instanceof Date) {
+      clean[key] = value.toISOString();
     } else if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
       clean[key] = sanitizeAuditMetadata(value);
     } else {

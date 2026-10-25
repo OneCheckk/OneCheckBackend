@@ -28,7 +28,8 @@ async function handleAnalyzeDoc(payload) {
     filePath,
     mime: mime || doc.mime,
     hintDocType: hintDocType || doc.docType || doc.documentType,
-    site
+    site,
+    originalName: doc.originalName
   });
 
   const resolvedDocType = analysisResult.docType || hintDocType || doc.docType || doc.documentType;

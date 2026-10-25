@@ -94,8 +94,8 @@ class MlClient {
     return this._get('/health', requestId);
   }
 
-  async analyzeDocument({ docId, filePath, mime, hintDocType, site }, requestId = null) {
-    return this._post('/v1/document/analyze', { docId, filePath, mime, hintDocType, site }, requestId);
+  async analyzeDocument({ docId, filePath, mime, hintDocType, site, originalName }, requestId = null) {
+    return this._post('/v1/document/analyze', { docId, filePath, mime, hintDocType, site, originalName }, requestId);
   }
 
   async compareForensics({ docId, textMinhash, imagePhash, candidates, thresholds }, requestId = null) {
@@ -139,7 +139,7 @@ class MlClient {
 
     if (endpoint === '/v1/document/analyze') {
       const docType = payload.hintDocType || 'SELF_DISCLOSURE_FORM';
-      return this._mockAnalyzeResponse(payload.docId, docType);
+      return this._mockAnalyzeResponse(payload.docId, docType, payload.originalName || payload.filePath);
     }
 
     if (endpoint === '/v1/forensics/compare') {
@@ -217,38 +217,50 @@ class MlClient {
     return { success: true };
   }
 
-  _mockAnalyzeResponse(docId, docType) {
+  _mockAnalyzeResponse(docId, docType, filePath = '') {
     const defaultClaims = [];
-    const forensics = [];
+    let forensics = [];
+    let warnings = [];
+    const isClean = typeof filePath === 'string' && filePath.toLowerCase().includes('clean');
 
     if (docType === 'SELF_DISCLOSURE_FORM') {
+      const intake = isClean ? 120 : 180;
       defaultClaims.push(
-        { subject: 'institution', predicate: 'institution_name', value: 'Apex Institute of Technology (Synthetic)', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.99, rawText: 'Apex Institute of Technology' },
-        { subject: 'institution', predicate: 'institution_id', value: 'AICTE-DEL-2026-01', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98, rawText: 'AICTE-DEL-2026-01' },
+        { subject: 'institution', predicate: 'institution_name', value: isClean ? 'Bharti Institute of Science & Research (Synthetic)' : 'Apex Institute of Technology (Synthetic)', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.99, rawText: isClean ? 'Bharti Institute of Science & Research' : 'Apex Institute of Technology' },
+        { subject: 'institution', predicate: 'institution_id', value: isClean ? 'AICTE-MAH-2026-02' : 'AICTE-DEL-2026-01', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98, rawText: isClean ? 'AICTE-MAH-2026-02' : 'AICTE-DEL-2026-01' },
         { subject: 'institution', predicate: 'lab_area_sqm_total', value: 640, unit: 'sqm', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.97, rawText: '640 sq m' },
-        { subject: 'institution', predicate: 'intake_requested', value: 180, origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.95, rawText: '180 seats' },
+        { subject: 'institution', predicate: 'intake_requested', value: intake, origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.95, rawText: `${intake} seats` },
         { subject: 'institution', predicate: 'faculty_count_declared', value: 6, origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.96, rawText: '6 faculty members' },
         { subject: 'institution', predicate: 'ter_payment_status_claimed', value: 'PAID', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98, rawText: 'Payment Confirmed: PAID' },
         { subject: 'institution', predicate: 'deficiency_declared_cleared', value: true, origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.94, rawText: 'All previous deficiencies cleared: Yes' }
       );
     } else if (docType === 'BUILDING_PLAN') {
+      const planArea = isClean ? 640 : 410;
+      if (!isClean) {
+        warnings = ['PDF incremental save detected', 'Font anomaly detected'];
+        forensics = [
+          { signal: 'INCREMENTAL_SAVE_DETECTED', details: 'PDF contains incremental update sections' },
+          { signal: 'FONT_ANOMALY', details: 'Non-embedded glyphs in text layer' }
+        ];
+      }
       defaultClaims.push(
-        { subject: 'institution', predicate: 'institution_name', value: 'Apex Institute of Technology (Synthetic)', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98 },
-        { subject: 'institution', predicate: 'institution_id', value: 'AICTE-DEL-2026-01', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.97 },
-        { subject: 'institution', predicate: 'lab_area_sqm_total', value: 410, unit: 'sqm', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.91, rawText: 'Laboratories (total): 410 sqm' },
+        { subject: 'institution', predicate: 'institution_name', value: isClean ? 'Bharti Institute of Science & Research (Synthetic)' : 'Apex Institute of Technology (Synthetic)', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98 },
+        { subject: 'institution', predicate: 'institution_id', value: isClean ? 'AICTE-MAH-2026-02' : 'AICTE-DEL-2026-01', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.97 },
+        { subject: 'institution', predicate: 'lab_area_sqm_total', value: planArea, unit: 'sqm', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.91, rawText: `Laboratories (total): ${planArea} sqm` },
         { subject: 'institution', predicate: 'built_up_area_sqm', value: 4500, unit: 'sqm', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.95, rawText: '4,500 sq m' }
       );
     } else if (docType === 'FACULTY_LIST') {
       defaultClaims.push(
-        { subject: 'institution', predicate: 'institution_id', value: 'AICTE-DEL-2026-01', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98 },
+        { subject: 'institution', predicate: 'institution_id', value: isClean ? 'AICTE-MAH-2026-02' : 'AICTE-DEL-2026-01', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98 },
         { subject: 'institution', predicate: 'faculty_count_listed', value: 6, origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.98, rawText: 'Total Listed Faculty: 6' }
       );
     } else if (docType === 'FIRE_NOC') {
+      const nocValid = isClean ? '2028-12-31' : '2026-10-31';
       defaultClaims.push(
-        { subject: 'institution', predicate: 'institution_name', value: 'Apex Institute of Technology (Synthetic)', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.97 },
-        { subject: 'institution', predicate: 'noc_certificate_no', value: 'NOC-UP-2024-9988', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.99, rawText: 'NOC No. NOC-UP-2024-9988' },
+        { subject: 'institution', predicate: 'institution_name', value: isClean ? 'Bharti Institute of Science & Research (Synthetic)' : 'Apex Institute of Technology (Synthetic)', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.97 },
+        { subject: 'institution', predicate: 'noc_certificate_no', value: isClean ? 'NOC-CLEAN-2026-1234' : 'NOC-UP-2024-9988', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.99, rawText: isClean ? 'NOC No. NOC-CLEAN-2026-1234' : 'NOC No. NOC-UP-2024-9988' },
         { subject: 'institution', predicate: 'noc_issue_date', value: '2024-01-15', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.96, rawText: '15/01/2024' },
-        { subject: 'institution', predicate: 'noc_valid_until', value: '2026-10-31', origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.95, rawText: '31/10/2026' }
+        { subject: 'institution', predicate: 'noc_valid_until', value: nocValid, origin: 'DOCUMENT', method: 'TEXT_LAYER', confidence: 0.95, rawText: nocValid }
       );
     } else if (docType === 'TER_PAYMENT_RECEIPT') {
       defaultClaims.push(
@@ -288,7 +300,7 @@ class MlClient {
         textMinhash: [12, 34, 56, 78],
         imagePhash: 'a1b2c3d4e5f6'
       },
-      warnings: [],
+      warnings,
       timings: { totalMs: 145 }
     };
   }
@@ -453,14 +465,18 @@ class MlClient {
     // Validity timeline entries
     const validity = [];
     if (nocClaim) {
+      const validDate = new Date(nocClaim.value);
+      const approvalEnd = new Date(payload.approvalPeriod?.end || '2027-06-30');
+      const lapsesInPeriod = validDate < approvalEnd;
+
       validity.push({
         docType: 'FIRE_NOC',
         claimId: nocClaim.claimId,
         label: 'Fire Safety NOC',
         validUntil: nocClaim.value,
-        state: 'LAPSES_IN_PERIOD',
-        daysRemaining: 120,
-        alertAt: new Date('2026-08-01T00:00:00Z').toISOString()
+        state: lapsesInPeriod ? 'LAPSES_IN_PERIOD' : 'VALID',
+        daysRemaining: lapsesInPeriod ? 120 : 730,
+        alertAt: lapsesInPeriod ? new Date('2026-08-01T00:00:00Z').toISOString() : null
       });
     }
 

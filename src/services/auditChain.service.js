@@ -13,18 +13,34 @@ const GENESIS_HASH = '0'.repeat(64);
 let chainQueue = Promise.resolve();
 
 /**
- * Deterministic canonical JSON stringification with recursively sorted keys
+ * Deterministic canonical JSON stringification with recursively sorted keys.
+ * Handles Dates, ObjectIds, and nested objects consistently.
  */
-function canonicalStringify(obj) {
-  if (obj === null || typeof obj !== 'object') {
-    return JSON.stringify(obj);
+function canonicalStringify(val) {
+  if (val === null || val === undefined) {
+    return 'null';
   }
-  if (Array.isArray(obj)) {
-    return '[' + obj.map(canonicalStringify).join(',') + ']';
+  if (val instanceof Date) {
+    return JSON.stringify(val.toISOString());
   }
-  const keys = Object.keys(obj).sort();
-  const pairs = keys.map((k) => JSON.stringify(k) + ':' + canonicalStringify(obj[k]));
-  return '{' + pairs.join(',') + '}';
+  if (typeof val === 'object') {
+    if (typeof val.toHexString === 'function') {
+      return JSON.stringify(val.toHexString());
+    }
+    if (val.constructor && val.constructor.name === 'ObjectId') {
+      return JSON.stringify(val.toString());
+    }
+    if (typeof val.toJSON === 'function') {
+      return canonicalStringify(val.toJSON());
+    }
+    if (Array.isArray(val)) {
+      return '[' + val.map(canonicalStringify).join(',') + ']';
+    }
+    const keys = Object.keys(val).filter((k) => val[k] !== undefined).sort();
+    const pairs = keys.map((k) => JSON.stringify(k) + ':' + canonicalStringify(val[k]));
+    return '{' + pairs.join(',') + '}';
+  }
+  return JSON.stringify(val);
 }
 
 /**
@@ -51,10 +67,21 @@ async function appendAuditEvent({ actor = null, action, entity = {}, payload = {
         }
       }
 
-      // 3. Format event data
+      // 3. Format event data with consistent normalized timestamp and payload
+      const eventDate = ts instanceof Date ? ts : new Date(ts);
+      const tsIso = new Date(eventDate.getTime()).toISOString();
+
+      // Normalize payload to ensure plain JSON representation matches persistence
+      let normalizedPayload = {};
+      try {
+        normalizedPayload = JSON.parse(JSON.stringify(payload || {}));
+      } catch (_) {
+        normalizedPayload = payload || {};
+      }
+
       const eventData = {
         seq,
-        ts: ts instanceof Date ? ts.toISOString() : new Date(ts).toISOString(),
+        ts: tsIso,
         actor: {
           id: actor?.id ? String(actor.id) : (actor?._id ? String(actor._id) : 'SYSTEM'),
           role: actor?.role || 'SYSTEM'
@@ -64,7 +91,7 @@ async function appendAuditEvent({ actor = null, action, entity = {}, payload = {
           type: entity?.type || 'SYSTEM',
           id: entity?.id ? String(entity.id) : 'NONE'
         },
-        payload: payload || {}
+        payload: normalizedPayload
       };
 
       // 4. Compute SHA-256 hash
@@ -74,7 +101,7 @@ async function appendAuditEvent({ actor = null, action, entity = {}, payload = {
       // 5. Persist event
       const eventRecord = await AuditEvent.create({
         seq,
-        ts,
+        ts: new Date(tsIso),
         actor: eventData.actor,
         action,
         entity: eventData.entity,
