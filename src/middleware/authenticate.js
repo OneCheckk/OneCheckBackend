@@ -30,8 +30,12 @@ async function authenticate(req, res, next) {
       return next(ApiError.unauthorized('User associated with this token no longer exists'));
     }
 
-    if (!user.isActive) {
+    if (user.isActive === false || user.active === false) {
       return next(ApiError.unauthorized('User account has been deactivated'));
+    }
+
+    if (!user.institutionId && user.institution) {
+      user.institutionId = user.institution;
     }
 
     // Attach sanitized user to request
