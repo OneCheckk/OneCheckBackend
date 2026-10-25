@@ -9,7 +9,15 @@ const { logEvent } = require('./audit.service');
  */
 async function login(email, password, requestId = null) {
   const normalizedEmail = email.toLowerCase().trim();
-  const user = await User.findOne({ email: normalizedEmail }).select('+passwordHash');
+  const EMAIL_ALIASES = {
+    'officer.rao@aicte.gov.in': 'officer@onecheck.gov.in',
+    'institution@apex-tech.edu.in': 'institution@delhi-tech.edu',
+    'admin@aicte.gov.in': 'admin@onecheck.gov.in',
+    'auditor@cag.gov.in': 'auditor@onecheck.gov.in',
+    'director@aicte.gov.in': 'director.regional@onecheck.gov.in'
+  };
+  const effectiveEmail = EMAIL_ALIASES[normalizedEmail] || normalizedEmail;
+  const user = await User.findOne({ email: effectiveEmail }).select('+passwordHash');
 
   if (!user || !user.isActive) {
     await logEvent({
