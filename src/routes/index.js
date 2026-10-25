@@ -30,4 +30,19 @@ router.use('/score', scoreRoutes);
 router.use('/alerts', alertRoutes);
 router.use('/dashboard', dashboardRoutes);
 
+const auditRoutes = require('./audit.routes');
+const auditController = require('../controllers/audit.controller');
+const authenticate = require('../middleware/authenticate');
+const { authorize } = require('../middleware/authorize');
+
+router.use('/audit', auditRoutes);
+
+// Spec Dev Tamper Endpoint: POST /api/dev/tamper-audit (DEMO_MODE / test only)
+router.post(
+  '/dev/tamper-audit',
+  authenticate,
+  authorize('ADMIN'),
+  auditController.tamperAudit
+);
+
 module.exports = router;

@@ -1,4 +1,5 @@
 const { AuditLog } = require('../models');
+const { appendAuditEvent } = require('./auditChain.service');
 const logger = require('../config/logger');
 
 const SENSITIVE_FIELDS = ['password', 'token', 'jwt', 'aadhaar', 'pan', 'extractedText', 'secret'];
@@ -23,12 +24,12 @@ function sanitizeAuditMetadata(metadata) {
 }
 
 /**
- * Appends an audit event to the append-only AuditLog collection
+ * Appends an audit event to both legacy AuditLog and the cryptographic AuditEvent hash chain
  */
 async function logEvent({
   actorUser = null,
   action,
-  entityType,
+  entityType = 'SYSTEM',
   entityId = null,
   application = null,
   requestId = null,
@@ -47,6 +48,26 @@ async function logEvent({
       outcome,
       metadata: cleanMeta
     });
+
+    // Also append to the cryptographic hash chain
+    await appendAuditEvent({
+      actor: {
+        id: actorUser?._id ? String(actorUser._id) : (actorUser ? String(actorUser) : 'SYSTEM'),
+        role: actorUser?.role || 'SYSTEM'
+      },
+      action,
+      entity: {
+        type: entityType,
+        id: entityId ? String(entityId) : 'NONE'
+      },
+      payload: {
+        ...cleanMeta,
+        applicationId: application?._id ? String(application._id) : (application ? String(application) : null),
+        outcome,
+        requestId
+      }
+    });
+
     return auditRecord;
   } catch (err) {
     // Audit log failure should be logged privately but not crash primary business transaction
