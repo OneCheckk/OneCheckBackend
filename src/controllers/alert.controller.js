@@ -36,7 +36,26 @@ const updateStatus = asyncHandler(async (req, res) => {
   });
 });
 
+const ackAlert = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const alert = await alertService.updateAlertStatus(
+    req.user,
+    req.params.id,
+    'ACKNOWLEDGED',
+    null,
+    requestId
+  );
+
+  res.status(200).json({
+    success: true,
+    message: 'Alert acknowledged successfully',
+    data: { alert },
+    meta: { requestId }
+  });
+});
+
 module.exports = {
   listAlerts,
-  updateStatus
+  updateStatus,
+  ackAlert
 };

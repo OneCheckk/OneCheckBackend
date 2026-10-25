@@ -37,6 +37,14 @@ const { authorize } = require('../middleware/authorize');
 
 router.use('/audit', auditRoutes);
 
+const demoRoutes = require('./demo.routes');
+const { subscribe } = require('../services/sse.service');
+
+router.use('/demo', demoRoutes);
+
+// Spec SSE Endpoint: GET /api/events (Live streaming event stream)
+router.get('/events', subscribe);
+
 // Spec Dev Tamper Endpoint: POST /api/dev/tamper-audit (DEMO_MODE / test only)
 router.post(
   '/dev/tamper-audit',

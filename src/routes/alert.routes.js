@@ -21,4 +21,12 @@ router.patch(
   alertController.updateStatus
 );
 
+// Spec: POST /api/alerts/:id/ack (OFFICER / ADMIN)
+router.post(
+  '/:id/ack',
+  authenticate,
+  authorize('OFFICER', 'SCRUTINY_OFFICER', 'REGIONAL_DIRECTOR', 'ADMIN'),
+  alertController.ackAlert
+);
+
 module.exports = router;

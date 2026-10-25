@@ -68,6 +68,21 @@ async function logEvent({
       }
     });
 
+    // Broadcast event to connected SSE clients
+    try {
+      const { broadcast } = require('./sse.service');
+      broadcast('AUDIT_EVENT', {
+        action,
+        entityType,
+        entityId,
+        outcome,
+        applicationId: application?._id || application || null,
+        timestamp: new Date().toISOString()
+      });
+    } catch (_) {
+      // Non-blocking
+    }
+
     return auditRecord;
   } catch (err) {
     // Audit log failure should be logged privately but not crash primary business transaction
