@@ -283,14 +283,28 @@ async function submitApplication(user, applicationId, requestId = null) {
     uploadStatus: 'STORED'
   });
 
-  const uploadedDocTypes = storedDocs.map((d) => d.documentType.toUpperCase());
+  const isEoaCategory = ['EOA_CONTINUATION', 'EOA_INTAKE_INCREASE', 'EOA_NEW_COURSE'].includes(application.category);
 
-  for (const requiredType of REQUIRED_SUBMISSION_DOCUMENTS) {
-    if (!uploadedDocTypes.includes(requiredType)) {
-      deficiencies.push({
-        field: requiredType,
-        message: `Mandatory document of type '${requiredType}' has not been uploaded.`
-      });
+  if (isEoaCategory) {
+    const checklistService = require('./checklist.service');
+    const chkResult = await checklistService.resolveChecklist(user, application._id);
+    if (!chkResult.isComplete) {
+      for (const m of chkResult.missingRequired) {
+        deficiencies.push({
+          field: m.docTypes[0] || m.id,
+          message: `Mandatory regulatory document '${m.label}' (${m.docTypes.join('/')}) has not been uploaded.`
+        });
+      }
+    }
+  } else {
+    const uploadedDocTypes = storedDocs.map((d) => (d.docType || d.documentType || '').toUpperCase());
+    for (const requiredType of REQUIRED_SUBMISSION_DOCUMENTS) {
+      if (!uploadedDocTypes.includes(requiredType)) {
+        deficiencies.push({
+          field: requiredType,
+          message: `Mandatory document of type '${requiredType}' has not been uploaded.`
+        });
+      }
     }
   }
 
@@ -301,8 +315,24 @@ async function submitApplication(user, applicationId, requestId = null) {
 
   // Transition status to SUBMITTED
   application.status = 'SUBMITTED';
+  application.submittedAt = new Date();
   application.totalDocuments = storedDocs.length;
   await application.save();
+
+  // Enqueue RECONCILE_APP job if documents are ready or being analyzed
+  const { Job } = require('../models');
+  const idempotencyKey = `reconcile:${application._id}:${Date.now()}`;
+  await Job.create({
+    type: 'RECONCILE_APP',
+    payload: {
+      applicationId: application._id.toString(),
+      academicYear: application.academicYear,
+      category: application.category
+    },
+    status: 'QUEUED',
+    runAfter: new Date(),
+    idempotencyKey
+  });
 
   await logEvent({
     actorUser: user._id,
@@ -312,7 +342,7 @@ async function submitApplication(user, applicationId, requestId = null) {
     application: application._id,
     requestId,
     outcome: 'SUCCESS',
-    metadata: { totalDocuments: storedDocs.length }
+    metadata: { totalDocuments: storedDocs.length, submittedAt: application.submittedAt }
   });
 
   return application;

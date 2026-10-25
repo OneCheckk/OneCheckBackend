@@ -42,6 +42,22 @@ router.post(
   applicationController.submitApplication
 );
 
+// Spec: GET /api/applications/:id/checklist (scoped)
+const checklistController = require('../controllers/checklist.controller');
+router.get(
+  '/:id/checklist',
+  authenticate,
+  checklistController.getChecklist
+);
+
+// Spec: POST /api/applications/:id/self-check (INSTITUTION / ADMIN)
+router.post(
+  '/:id/self-check',
+  authenticate,
+  authorize('INSTITUTION_USER', 'INSTITUTION', 'ADMIN'),
+  checklistController.runSelfCheck
+);
+
 // Spec: POST /api/applications/:id/documents (INSTITUTION)
 const { upload } = require('../config/upload');
 const documentController = require('../controllers/document.controller');
