@@ -38,8 +38,26 @@ router.patch(
 router.post(
   '/:id/submit',
   authenticate,
-  authorize('INSTITUTION_USER', 'ADMIN'),
+  authorize('INSTITUTION_USER', 'INSTITUTION', 'ADMIN'),
   applicationController.submitApplication
+);
+
+// Spec: POST /api/applications/:id/documents (INSTITUTION)
+const { upload } = require('../config/upload');
+const documentController = require('../controllers/document.controller');
+router.post(
+  '/:id/documents',
+  authenticate,
+  authorize('INSTITUTION_USER', 'INSTITUTION', 'ADMIN'),
+  upload.any(),
+  documentController.uploadSpec
+);
+
+// Spec: GET /api/applications/:id/documents (scoped)
+router.get(
+  '/:id/documents',
+  authenticate,
+  documentController.listDocuments
 );
 
 // Canonical: POST /api/applications/:id/run-checks (OFFICER / ADMIN)

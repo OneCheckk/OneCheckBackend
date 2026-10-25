@@ -99,11 +99,49 @@ async function deletePrivateFile(storageKey) {
   }
 }
 
+/**
+ * Writes file buffer under specification structure: originals/<appId>/<docId>_<sha256>.<ext>
+ */
+async function saveOriginalFile({ buffer, appId, docId, sha256, extension }) {
+  const uploadDir = ensureUploadDir();
+  const safeExt = extension.startsWith('.') ? extension.toLowerCase() : `.${extension.toLowerCase()}`;
+  const relDir = path.join('originals', String(appId));
+  const fullDir = path.join(uploadDir, relDir);
+
+  if (!fs.existsSync(fullDir)) {
+    fs.mkdirSync(fullDir, { recursive: true });
+  }
+
+  const fileName = `${docId}_${sha256}${safeExt}`;
+  const relPath = path.join(relDir, fileName).replace(/\\/g, '/');
+  const fullPath = path.join(fullDir, fileName);
+
+  await fs.promises.writeFile(fullPath, buffer);
+  return { storagePath: relPath, fullPath };
+}
+
+/**
+ * Resolves storagePath or storageKey with strict path traversal defense
+ */
+function resolveFilePath(relativePathOrKey) {
+  const uploadDir = ensureUploadDir();
+  const normalized = path.normalize(relativePathOrKey).replace(/^(\.\.(\/|\\|$))+/, '');
+  const resolvedPath = path.resolve(uploadDir, normalized);
+
+  if (!resolvedPath.startsWith(uploadDir)) {
+    throw ApiError.badRequest('Invalid storage path: directory traversal attempt detected');
+  }
+
+  return resolvedPath;
+}
+
 module.exports = {
   validateFileSignature,
   computeSha256,
   savePrivateFile,
+  saveOriginalFile,
   getPrivateFilePath,
+  resolveFilePath,
   deletePrivateFile,
   ensureUploadDir
 };

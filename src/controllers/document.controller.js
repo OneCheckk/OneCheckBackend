@@ -85,10 +85,81 @@ const runEla = asyncHandler(async (req, res) => {
   });
 });
 
+const uploadSpec = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const file = req.file || (req.files && req.files[0]);
+
+  if (!file) {
+    throw ApiError.badRequest('No document attached. Multipart upload required.');
+  }
+
+  const result = await documentService.uploadDocumentSpec(
+    req.user,
+    req.params.id || req.params.appId,
+    file,
+    req.body.docTypeHint || req.body.documentType,
+    requestId
+  );
+
+  const statusCode = result.isDuplicate ? 200 : 201;
+  res.status(statusCode).json({
+    success: true,
+    data: result.document,
+    notice: result.notice,
+    meta: { requestId }
+  });
+});
+
+const replaceSpec = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const file = req.file || (req.files && req.files[0]);
+
+  if (!file) {
+    throw ApiError.badRequest('No replacement file attached.');
+  }
+
+  const newDoc = await documentService.replaceDocumentVersion(
+    req.user,
+    req.params.docId,
+    file,
+    req.body.docTypeHint || req.body.documentType,
+    requestId
+  );
+
+  res.status(201).json({
+    success: true,
+    data: newDoc,
+    meta: { requestId }
+  });
+});
+
+const streamFile = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  await documentService.streamDocumentFile(req.user, req.params.docId, res, requestId);
+});
+
+const listDocuments = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const documents = await documentService.listApplicationDocuments(
+    req.user,
+    req.params.id || req.params.appId
+  );
+
+  res.status(200).json({
+    success: true,
+    data: documents,
+    meta: { requestId }
+  });
+});
+
 module.exports = {
   upload,
   getMetadata,
   download,
   runOcr,
-  runEla
+  runEla,
+  uploadSpec,
+  replaceSpec,
+  streamFile,
+  listDocuments
 };

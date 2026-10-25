@@ -15,6 +15,18 @@ router.post(
   documentController.upload
 );
 
+// Spec: POST /api/documents/:docId/replace (INSTITUTION)
+router.post(
+  '/:docId/replace',
+  authenticate,
+  authorize('INSTITUTION_USER', 'INSTITUTION', 'ADMIN'),
+  upload.any(),
+  documentController.replaceSpec
+);
+
+// Spec: GET /api/documents/:docId/file (Scoped - inline streaming)
+router.get('/:docId/file', authenticate, documentController.streamFile);
+
 // Canonical: GET /api/documents/:docId (Authorized user)
 router.get('/:docId', authenticate, documentController.getMetadata);
 
