@@ -14,6 +14,34 @@ const getSummary = asyncHandler(async (req, res) => {
   });
 });
 
+const getOfficer = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const data = await dashboardService.getOfficerDashboard(req.user);
+
+  res.status(200).json({
+    success: true,
+    data,
+    meta: {
+      requestId
+    }
+  });
+});
+
+const getInstitution = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const data = await dashboardService.getInstitutionDashboard(req.user);
+
+  res.status(200).json({
+    success: true,
+    data,
+    meta: {
+      requestId
+    }
+  });
+});
+
 module.exports = {
-  getSummary
+  getSummary,
+  getOfficer,
+  getInstitution
 };

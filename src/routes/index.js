@@ -48,6 +48,12 @@ router.use('/demo', demoRoutes);
 // Spec SSE Endpoint: GET /api/events (Live streaming event stream)
 router.get('/events', subscribe);
 
+const adminRoutes = require('./admin.routes');
+const benchmarkRoutes = require('./benchmark.routes');
+
+router.use('/admin', adminRoutes);
+router.use('/benchmark', benchmarkRoutes);
+
 // Spec Dev Tamper Endpoint: POST /api/dev/tamper-audit (DEMO_MODE / test only)
 router.post(
   '/dev/tamper-audit',
