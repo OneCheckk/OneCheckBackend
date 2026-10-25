@@ -5,7 +5,7 @@ const ApiError = require('../utils/ApiError');
 
 const runGhostCheck = asyncHandler(async (req, res) => {
   const requestId = res.locals.requestId || req.id;
-  const application = await Application.findById(req.params.appId);
+  const application = await Application.findByIdOrNumber(req.params.appId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

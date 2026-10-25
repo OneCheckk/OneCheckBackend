@@ -13,4 +13,11 @@ router.post(
   scoreController.computeScore
 );
 
+// Canonical: GET /api/score/:appId
+router.get(
+  '/:appId',
+  authenticate,
+  scoreController.getScore
+);
+
 module.exports = router;

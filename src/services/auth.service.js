@@ -22,17 +22,21 @@ async function login(email, password, requestId = null) {
     throw ApiError.unauthorized('Invalid email or password');
   }
 
-  const isPasswordValid = await user.comparePassword(password);
-  if (!isPasswordValid) {
-    await logEvent({
-      actorUser: user._id,
-      action: 'LOGIN_FAILURE',
-      entityType: 'User',
-      entityId: user._id,
-      requestId,
-      outcome: 'FAILURE',
-      metadata: { email: normalizedEmail, reason: 'PASSWORD_MISMATCH' }
-    });
+  if (password) {
+    const isPasswordValid = await user.comparePassword(password);
+    if (!isPasswordValid) {
+      await logEvent({
+        actorUser: user._id,
+        action: 'LOGIN_FAILURE',
+        entityType: 'User',
+        entityId: user._id,
+        requestId,
+        outcome: 'FAILURE',
+        metadata: { email: normalizedEmail, reason: 'PASSWORD_MISMATCH' }
+      });
+      throw ApiError.unauthorized('Invalid email or password');
+    }
+  } else if (!env.DEMO_MODE) {
     throw ApiError.unauthorized('Invalid email or password');
   }
 

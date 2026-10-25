@@ -13,4 +13,11 @@ router.post(
   forensicsController.runGeoCheck
 );
 
+// Canonical: GET /api/forensics/:appId
+router.get(
+  '/:appId',
+  authenticate,
+  forensicsController.getForensics
+);
+
 module.exports = router;

@@ -38,7 +38,8 @@ async function confirmClaim(req, res, next) {
 
 async function correctClaim(req, res, next) {
   try {
-    const { newValue, reason } = req.body;
+    const newValue = req.body.newValue !== undefined ? req.body.newValue : req.body.value;
+    const { reason } = req.body;
     const result = await claimService.correctClaim(
       req.user,
       req.params.claimId,

@@ -171,6 +171,16 @@ applicationSchema.index({ assignedOfficer: 1 });
 applicationSchema.index({ institution: 1 });
 applicationSchema.index({ createdAt: -1 });
 
+// Helper to resolve application by either MongoDB _id or string applicationNumber
+applicationSchema.statics.findByIdOrNumber = function (id) {
+  if (!id) return this.findOne({ _id: null });
+  const isObjectId = mongoose.isValidObjectId(id);
+  const query = isObjectId
+    ? { $or: [{ _id: id }, { applicationNumber: id }, { appNo: id }] }
+    : { $or: [{ applicationNumber: id }, { appNo: id }] };
+  return this.findOne(query);
+};
+
 const Application = mongoose.model('Application', applicationSchema);
 
 module.exports = Application;

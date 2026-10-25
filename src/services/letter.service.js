@@ -4,6 +4,7 @@
  * tracks draft letters, and dispatches them with status transitions and audit logging.
  */
 
+const mongoose = require('mongoose');
 const Handlebars = require('handlebars');
 const { Letter, Application, Finding, Institution } = require('../models');
 const { logEvent } = require('./audit.service');
@@ -72,7 +73,7 @@ const compiledTemplate = Handlebars.compile(DEFICIENCY_LETTER_TEMPLATE);
  * Creates draft deficiency letter
  */
 async function createDeficiencyLetter(user, applicationId, { findingIds = [] }, requestId = null) {
-  const application = await Application.findById(applicationId).populate('institution');
+  const application = await Application.findByIdOrNumber(applicationId).populate('institution');
   if (!application) {
     throw ApiError.notFound('Application not found');
   }
@@ -85,7 +86,11 @@ async function createDeficiencyLetter(user, applicationId, { findingIds = [] }, 
   // Fetch target findings
   let findingsQuery = { applicationId: application._id };
   if (findingIds && findingIds.length > 0) {
-    findingsQuery._id = { $in: findingIds };
+    const validObjectIds = findingIds.filter((id) => mongoose.isValidObjectId(id));
+    findingsQuery.$or = [
+      { _id: { $in: validObjectIds } },
+      { findingId: { $in: findingIds } }
+    ];
   } else {
     findingsQuery.severity = { $in: ['HIGH', 'CRITICAL', 'MEDIUM'] };
   }
@@ -132,7 +137,7 @@ async function createDeficiencyLetter(user, applicationId, { findingIds = [] }, 
  * Retrieves letters for an application with access control
  */
 async function getLettersByApplication(user, applicationId) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

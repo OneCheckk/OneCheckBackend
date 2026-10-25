@@ -162,7 +162,7 @@ async function listApplications(user, query) {
  * Retrieves full application details including documents, score, alerts, and latest run
  */
 async function getApplicationById(user, applicationId) {
-  const application = await Application.findById(applicationId)
+  const application = await Application.findByIdOrNumber(applicationId)
     .populate('institution', 'name registrationId address state latitude longitude verificationStatus')
     .populate('assignedOfficer', 'name email role');
 
@@ -201,7 +201,7 @@ async function getApplicationById(user, applicationId) {
  * Updates application allowed fields
  */
 async function updateApplication(user, applicationId, updateData, requestId = null) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }
@@ -246,7 +246,7 @@ async function updateApplication(user, applicationId, updateData, requestId = nu
  * Validates requirements and submits application
  */
 async function submitApplication(user, applicationId, requestId = null) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }
@@ -352,7 +352,7 @@ async function submitApplication(user, applicationId, requestId = null) {
  * Transitions application status adhering strictly to allowed status lifecycle
  */
 async function transitionStatus(user, applicationId, targetStatus, reason = null, assignedOfficerId = null, requestId = null) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

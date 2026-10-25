@@ -18,8 +18,11 @@ function validateCreateApplication(req) {
     errors.push({ field: 'category', message: 'Application category is required' });
   }
 
-  if (!academicYear || typeof academicYear !== 'string' || !academicYear.trim()) {
-    errors.push({ field: 'academicYear', message: 'Academic year is required' });
+  // Default academicYear to '2026-2027' if missing in request body, rather than throwing a validation error
+  if (!req.body?.academicYear || typeof req.body.academicYear !== 'string' || !req.body.academicYear.trim()) {
+    if (req.body) {
+      req.body.academicYear = '2026-2027';
+    }
   }
 
   // If ADMIN is creating, institutionId must be provided in body

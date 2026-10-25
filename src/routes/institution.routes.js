@@ -16,6 +16,9 @@ router.post(
   institutionController.createInstitution
 );
 
+// Canonical: GET /api/institutions (Bulk List)
+router.get('/', authenticate, institutionController.listInstitutions);
+
 // Canonical: GET /api/institutions/:id (Role + ownership check)
 router.get('/:id', authenticate, institutionController.getInstitutionById);
 

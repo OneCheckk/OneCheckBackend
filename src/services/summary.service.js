@@ -74,7 +74,7 @@ async function computeApplicationSummary(applicationId) {
   else if (countsBySeverity.LOW > 0) severityRank = 4;
 
   const findingCountPad = String(999 - Math.min(openFindings.length, 999)).padStart(3, '0');
-  const app = await Application.findById(applicationId).select('submittedAt createdAt');
+  const app = await Application.findByIdOrNumber(applicationId).select('submittedAt createdAt');
   const subTs = app?.submittedAt ? app.submittedAt.getTime() : (app?.createdAt ? app.createdAt.getTime() : Date.now());
 
   const sortKey = `${severityRank}_${findingCountPad}_${subTs}`;

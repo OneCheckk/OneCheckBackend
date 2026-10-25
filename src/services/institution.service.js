@@ -69,7 +69,22 @@ async function getInstitutionById(user, institutionId) {
   return institution;
 }
 
+/**
+ * Retrieves bulk list of institutions for authorized users
+ */
+async function listInstitutions(user) {
+  let query = {};
+  if (user && (user.role === 'INSTITUTION' || user.role === 'INSTITUTION_USER')) {
+    const userInstId = user.institution?._id || user.institution || user.institutionId;
+    if (userInstId) {
+      query._id = userInstId;
+    }
+  }
+  return await Institution.find(query).sort({ name: 1 });
+}
+
 module.exports = {
   createInstitution,
-  getInstitutionById
+  getInstitutionById,
+  listInstitutions
 };

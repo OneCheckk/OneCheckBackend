@@ -5,7 +5,7 @@ const { Application, Document, InfraPhoto, Alert, RiskScore } = require('../mode
  * Computes deterministic risk score from persisted backend facts
  */
 async function computeRiskScore(applicationId, runId) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw new Error('Application not found');
   }
@@ -15,7 +15,7 @@ async function computeRiskScore(applicationId, runId) {
 
   // 1. Pillar: Document Completeness (Base: 100)
   let docSubscore = 100;
-  const docs = await Document.find({ application: applicationId, uploadStatus: 'STORED' });
+  const docs = await Document.find({ application: application._id, uploadStatus: 'STORED' });
   const requiredTypes = ['LAND_DOC', 'AFFILIATION_DOC', 'BUILDING_PLAN', 'FACULTY_LIST'];
   const uploadedTypes = docs.map((d) => d.documentType);
 
@@ -50,7 +50,7 @@ async function computeRiskScore(applicationId, runId) {
   // 2. Pillar: Anomaly Flags (Base: 100)
   let anomalySubscore = 100;
   const activeAlerts = await Alert.find({
-    application: applicationId,
+    application: application._id,
     status: { $in: ['OPEN', 'ACKNOWLEDGED'] }
   });
 
@@ -118,7 +118,7 @@ async function computeRiskScore(applicationId, runId) {
 
   // 5. Pillar: Infrastructure Evidence (Base: 100)
   let infraSubscore = 100;
-  const photos = await InfraPhoto.find({ application: applicationId });
+  const photos = await InfraPhoto.find({ application: application._id });
 
   if (photos.length === 0) {
     infraSubscore -= 20;
@@ -175,7 +175,7 @@ async function computeRiskScore(applicationId, runId) {
 
   // Persist RiskScore record
   const scoreRecord = await RiskScore.create({
-    application: applicationId,
+    application: application._id,
     runId,
     totalScore,
     riskLevel,

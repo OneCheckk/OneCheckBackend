@@ -23,7 +23,7 @@ const PROPOSAL_OUTCOMES = [
 const FINAL_CONFIRMATION_OUTCOMES = ['APPROVE', 'REJECT'];
 
 async function recordDecision(user, applicationId, { outcome, reason }, requestId = null) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

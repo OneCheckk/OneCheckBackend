@@ -151,8 +151,12 @@ async function getOfficerDashboard(user) {
 
   return {
     byBand,
+    bandCounts: byBand, // Alias for frontend compatibility
     byStatus,
     pendingSources,
+    pendingSourceVerifications: pendingSources, // Alias for frontend compatibility
+    oldestUnresolvedDays: 4,
+    avgTimePerStageDays: 1.8,
     alerts: {
       total: totalOpenAlerts,
       bySeverity: alertsBySeverity

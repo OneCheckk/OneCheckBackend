@@ -11,7 +11,7 @@ const { logEvent } = require('./audit.service');
  * Retrieves claims for an application with access control and filtering
  */
 async function getClaims(user, applicationId, filters = {}) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }
@@ -91,8 +91,9 @@ async function confirmClaim(user, claimId, requestId = null) {
 /**
  * Corrects a claim's extracted value with audit trail
  */
-async function correctClaim(user, claimId, { newValue, reason }, requestId = null) {
-  if (newValue === undefined || newValue === null) {
+async function correctClaim(user, claimId, { newValue, value, reason }, requestId = null) {
+  const finalValue = newValue !== undefined ? newValue : value;
+  if (finalValue === undefined || finalValue === null) {
     throw ApiError.badRequest('newValue is required for claim correction');
   }
 
@@ -121,7 +122,7 @@ async function correctClaim(user, claimId, { newValue, reason }, requestId = nul
 
   const oldValue = claim.value;
   claim.previousValue = oldValue;
-  claim.value = newValue;
+  claim.value = finalValue;
   claim.status = 'CORRECTED';
   claim.correctedBy = user._id;
   claim.correctionReason = reason.trim();

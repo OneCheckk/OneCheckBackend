@@ -33,7 +33,7 @@ function computeClaimsKey(ruleId, claimIds = []) {
  * Executes full reconciliation pipeline for an application
  */
 async function reconcileApplication(applicationId, user = null, requestId = null) {
-  const application = await Application.findById(applicationId).populate('institution');
+  const application = await Application.findByIdOrNumber(applicationId).populate('institution');
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

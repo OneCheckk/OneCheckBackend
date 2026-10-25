@@ -14,7 +14,7 @@ const ApiError = require('../utils/ApiError');
  * Retrieves verification ledger entries for an application with access control
  */
 async function getLedgerByApplication(user, applicationId) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

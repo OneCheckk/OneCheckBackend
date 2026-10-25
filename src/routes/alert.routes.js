@@ -13,11 +13,19 @@ router.get(
   alertController.listAlerts
 );
 
-// Canonical: PATCH /api/alerts/:id/status (OFFICER / ADMIN)
+// Canonical: PATCH /api/alerts/:id/status (OFFICER / SCRUTINY_OFFICER / REGIONAL_DIRECTOR / ADMIN)
 router.patch(
   '/:id/status',
   authenticate,
-  authorize('OFFICER', 'ADMIN'),
+  authorize('OFFICER', 'SCRUTINY_OFFICER', 'REGIONAL_DIRECTOR', 'ADMIN'),
+  alertController.updateStatus
+);
+
+// Frontend Direct: PATCH /api/alerts/:id (OFFICER / SCRUTINY_OFFICER / REGIONAL_DIRECTOR / ADMIN)
+router.patch(
+  '/:id',
+  authenticate,
+  authorize('OFFICER', 'SCRUTINY_OFFICER', 'REGIONAL_DIRECTOR', 'ADMIN'),
   alertController.updateStatus
 );
 

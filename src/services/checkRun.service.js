@@ -21,7 +21,7 @@ const PIPELINE_STEPS = [
  * Initializes and enqueues a CheckRun, returning 202 immediately
  */
 async function startCheckRun(user, applicationId, requestId = null) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Target application not found');
   }
@@ -198,7 +198,7 @@ async function executeCheckRun(checkRunId, applicationId, runId, requestId) {
  * Retrieves CheckRun status and step progress
  */
 async function getCheckRunStatus(user, applicationId, runId) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }
@@ -211,7 +211,7 @@ async function getCheckRunStatus(user, applicationId, runId) {
     }
   }
 
-  const checkRun = await CheckRun.findOne({ application: applicationId, runId });
+  const checkRun = await CheckRun.findOne({ application: application._id, runId });
   if (!checkRun) {
     throw ApiError.notFound(`CheckRun with identifier '${runId}' not found for this application.`);
   }

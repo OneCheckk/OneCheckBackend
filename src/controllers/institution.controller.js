@@ -27,7 +27,21 @@ const getInstitutionById = asyncHandler(async (req, res) => {
   });
 });
 
+const listInstitutions = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const institutions = await institutionService.listInstitutions(req.user);
+
+  res.status(200).json({
+    success: true,
+    data: institutions,
+    meta: {
+      requestId
+    }
+  });
+});
+
 module.exports = {
   createInstitution,
-  getInstitutionById
+  getInstitutionById,
+  listInstitutions
 };

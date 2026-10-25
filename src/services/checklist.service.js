@@ -19,7 +19,7 @@ const DEFAULT_EOA_ITEMS = [
  * Resolves active checklist for an application, mapping stored documents to checklist items
  */
 async function resolveChecklist(user, applicationId) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }
@@ -121,7 +121,7 @@ async function resolveChecklist(user, applicationId) {
  * Runs application self-check pipeline while preserving DRAFT status
  */
 async function runSelfCheck(user, applicationId) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

@@ -8,8 +8,11 @@ function validateLogin(req) {
     errors.push({ field: 'email', message: 'Invalid email address format' });
   }
 
+  const env = require('../config/env');
   if (!password || typeof password !== 'string' || !password.trim()) {
-    errors.push({ field: 'password', message: 'Password is required' });
+    if (!env.DEMO_MODE) {
+      errors.push({ field: 'password', message: 'Password is required' });
+    }
   }
 
   return errors;

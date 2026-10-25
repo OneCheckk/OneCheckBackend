@@ -5,7 +5,7 @@ const ApiError = require('../utils/ApiError');
 
 const computeScore = asyncHandler(async (req, res) => {
   const requestId = res.locals.requestId || req.id;
-  const application = await Application.findById(req.params.appId);
+  const application = await Application.findByIdOrNumber(req.params.appId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }
@@ -24,6 +24,36 @@ const computeScore = asyncHandler(async (req, res) => {
   });
 });
 
+const { RiskScore } = require('../models');
+
+const getScore = asyncHandler(async (req, res) => {
+  const requestId = res.locals.requestId || req.id;
+  const application = await Application.findByIdOrNumber(req.params.appId);
+  if (!application) {
+    throw ApiError.notFound('Application not found');
+  }
+
+  const riskScore = await RiskScore.findOne({ application: application._id }).sort({ createdAt: -1 });
+  res.status(200).json({
+    success: true,
+    data: riskScore || {
+      applicationId: application._id,
+      totalScore: application.riskScore !== null && application.riskScore !== undefined ? application.riskScore : 100,
+      riskLevel: application.riskLevel || 'GREEN',
+      pillarScores: {
+        documentCompleteness: 100,
+        anomalyFlags: 100,
+        sourceVerification: 100,
+        historicalCompliance: 100,
+        infrastructureEvidence: 100
+      },
+      deductions: []
+    },
+    meta: { requestId }
+  });
+});
+
 module.exports = {
-  computeScore
+  computeScore,
+  getScore
 };

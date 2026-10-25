@@ -3,13 +3,14 @@
  * Handles retrieval of regulatory findings and manual reconciliation triggers
  */
 
+const mongoose = require('mongoose');
 const { Finding, Application } = require('../models');
 const { reconcileApplication } = require('../services/reconciliation.service');
 const ApiError = require('../utils/ApiError');
 
 async function getFindingsByApplication(req, res, next) {
   try {
-    const application = await Application.findById(req.params.id);
+    const application = await Application.findByIdOrNumber(req.params.id);
     if (!application) {
       throw ApiError.notFound('Application not found');
     }
@@ -39,7 +40,11 @@ async function getFindingsByApplication(req, res, next) {
 
 async function getFindingById(req, res, next) {
   try {
-    const finding = await Finding.findById(req.params.id);
+    const id = req.params.id;
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ _id: id }, { findingId: id }] }
+      : { findingId: id };
+    const finding = await Finding.findOne(query);
     if (!finding) {
       throw ApiError.notFound('Finding not found');
     }
@@ -88,7 +93,11 @@ async function recordDisposition(req, res, next) {
       throw ApiError.badRequest(`Mandatory justification reason (at least 10 characters) required when disposition is ${state}`);
     }
 
-    const finding = await Finding.findById(req.params.id);
+    const id = req.params.id;
+    const query = mongoose.isValidObjectId(id)
+      ? { $or: [{ _id: id }, { findingId: id }] }
+      : { findingId: id };
+    const finding = await Finding.findOne(query);
     if (!finding) {
       throw ApiError.notFound('Finding not found');
     }

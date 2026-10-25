@@ -22,7 +22,7 @@ async function uploadDocuments(user, applicationId, files, bodyData = {}, reques
     throw ApiError.badRequest('No files provided in multipart upload request');
   }
 
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Target application not found');
   }
@@ -235,7 +235,7 @@ async function uploadDocumentSpec(user, applicationId, file, docTypeHint = 'OTHE
     throw ApiError.badRequest('No document file attached in request payload.');
   }
 
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Target application not found');
   }
@@ -548,7 +548,7 @@ async function streamDocumentFile(user, docId, res, requestId = null) {
  * Lists documents for an application
  */
 async function listApplicationDocuments(user, applicationId) {
-  const application = await Application.findById(applicationId);
+  const application = await Application.findByIdOrNumber(applicationId);
   if (!application) {
     throw ApiError.notFound('Application not found');
   }

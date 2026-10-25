@@ -33,4 +33,14 @@ router.put(
   }
 );
 
+const auditController = require('../controllers/audit.controller');
+
+// POST /api/demo/tamper-audit (Alias for demo control drawer)
+router.post(
+  '/tamper-audit',
+  authenticate,
+  authorize('ADMIN'),
+  auditController.tamperAudit
+);
+
 module.exports = router;
