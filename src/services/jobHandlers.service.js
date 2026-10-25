@@ -215,11 +215,20 @@ async function handleReconcileApp(payload) {
 }
 
 /**
- * Placeholder for VERIFY_SOURCES (implemented in Stage 7)
+ * Handler: VERIFY_SOURCES
+ * Verifies external issuer sources for all documents in the application
  */
 async function handleVerifySources(payload) {
-  logger.info(`VERIFY_SOURCES called for app ${payload.applicationId}`);
-  return { success: true };
+  const { verifyDocumentSources } = require('./ledger.service');
+  const docs = await Document.find({
+    application: payload.applicationId,
+    uploadStatus: 'STORED'
+  });
+
+  for (const doc of docs) {
+    await verifyDocumentSources(null, doc._id);
+  }
+  return { success: true, count: docs.length };
 }
 
 module.exports = {

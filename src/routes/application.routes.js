@@ -100,6 +100,14 @@ router.post(
   findingController.triggerReconcile
 );
 
+// Spec: GET /api/applications/:id/ledger (scoped)
+const ledgerController = require('../controllers/ledger.controller');
+router.get(
+  '/:id/ledger',
+  authenticate,
+  ledgerController.getLedgerByApplication
+);
+
 // Canonical: POST /api/applications/:id/run-checks (OFFICER / ADMIN)
 router.post(
   '/:id/run-checks',

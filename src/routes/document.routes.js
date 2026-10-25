@@ -49,4 +49,12 @@ router.post(
   documentController.runEla
 );
 
+// Spec: POST /api/documents/:docId/verify (INSTITUTION / OFFICER / ADMIN)
+const ledgerController = require('../controllers/ledger.controller');
+router.post(
+  '/:docId/verify',
+  authenticate,
+  ledgerController.verifyDocument
+);
+
 module.exports = router;
