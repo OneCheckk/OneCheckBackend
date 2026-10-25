@@ -60,6 +60,14 @@ router.get(
   documentController.listDocuments
 );
 
+// Spec: GET /api/applications/:id/claims (scoped)
+const claimController = require('../controllers/claim.controller');
+router.get(
+  '/:id/claims',
+  authenticate,
+  claimController.getClaimsByApplication
+);
+
 // Canonical: POST /api/applications/:id/run-checks (OFFICER / ADMIN)
 router.post(
   '/:id/run-checks',

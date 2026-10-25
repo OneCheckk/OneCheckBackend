@@ -9,15 +9,17 @@ const forensicsRoutes = require('./forensics.routes');
 const scoreRoutes = require('./score.routes');
 const alertRoutes = require('./alert.routes');
 const dashboardRoutes = require('./dashboard.routes');
+const claimRoutes = require('./claim.routes');
 
 const router = express.Router();
 
-// All 23 Canonical REST Endpoints from Section 6
+// All Canonical & Spec REST Endpoints
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/institutions', institutionRoutes);
 router.use('/applications', applicationRoutes);
 router.use('/documents', documentRoutes);
+router.use('/claims', claimRoutes);
 router.use('/faculty', facultyRoutes);
 router.use('/forensics', forensicsRoutes);
 router.use('/score', scoreRoutes);
