@@ -75,8 +75,71 @@ async function triggerReconcile(req, res, next) {
   }
 }
 
+async function recordDisposition(req, res, next) {
+  try {
+    const { state, reason } = req.body;
+    const validStates = ['OPEN', 'ACCEPTED', 'DISMISSED', 'CLARIFICATION_REQUESTED', 'RESOLVED'];
+
+    if (!validStates.includes(state)) {
+      throw ApiError.badRequest(`Invalid disposition state '${state}'. Allowed: ${validStates.join(', ')}`);
+    }
+
+    if (['DISMISSED', 'ACCEPTED'].includes(state) && (!reason || reason.trim().length < 10)) {
+      throw ApiError.badRequest(`Mandatory justification reason (at least 10 characters) required when disposition is ${state}`);
+    }
+
+    const finding = await Finding.findById(req.params.id);
+    if (!finding) {
+      throw ApiError.notFound('Finding not found');
+    }
+
+    finding.disposition = {
+      state,
+      dispositionedBy: req.user._id,
+      dispositionedAt: new Date(),
+      reason: reason ? reason.trim() : null
+    };
+    finding.state = state;
+    finding.decidedBy = req.user._id;
+    finding.decidedAt = new Date();
+    finding.decisionReason = reason ? reason.trim() : null;
+    await finding.save();
+
+    // Recompute deterministic summary
+    const { computeApplicationSummary } = require('../services/summary.service');
+    const { logEvent } = require('../services/audit.service');
+    const summary = await computeApplicationSummary(finding.applicationId);
+
+    await logEvent({
+      actorUser: req.user._id,
+      action: 'FINDING_DISPOSITION',
+      entityType: 'Finding',
+      entityId: finding._id,
+      application: finding.applicationId,
+      requestId: req.requestId,
+      outcome: 'SUCCESS',
+      metadata: {
+        findingId: finding._id,
+        ruleId: finding.ruleId,
+        state,
+        reason: finding.disposition.reason
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Finding disposition recorded successfully',
+      data: finding,
+      summary
+    });
+  } catch (err) {
+    next(err);
+  }
+}
+
 module.exports = {
   getFindingsByApplication,
   getFindingById,
-  triggerReconcile
+  triggerReconcile,
+  recordDisposition
 };

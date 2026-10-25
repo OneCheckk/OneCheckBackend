@@ -108,6 +108,42 @@ router.get(
   ledgerController.getLedgerByApplication
 );
 
+// Spec: POST /api/applications/:id/decision (OFFICER / REGIONAL_DIRECTOR / ADMIN)
+const { recordDecision } = require('../services/decision.service');
+router.post(
+  '/:id/decision',
+  authenticate,
+  authorize('OFFICER', 'SCRUTINY_OFFICER', 'REGIONAL_DIRECTOR', 'ADMIN'),
+  async (req, res, next) => {
+    try {
+      const { outcome, reason } = req.body;
+      const app = await recordDecision(req.user, req.params.id, { outcome, reason }, req.requestId);
+      res.status(200).json({
+        success: true,
+        message: 'Decision recorded successfully',
+        data: app
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+// Spec: POST & GET /api/applications/:id/letters
+const letterController = require('../controllers/letter.controller');
+router.post(
+  '/:id/letters',
+  authenticate,
+  authorize('OFFICER', 'SCRUTINY_OFFICER', 'REGIONAL_DIRECTOR', 'ADMIN'),
+  letterController.createLetter
+);
+
+router.get(
+  '/:id/letters',
+  authenticate,
+  letterController.getLetters
+);
+
 // Canonical: POST /api/applications/:id/run-checks (OFFICER / ADMIN)
 router.post(
   '/:id/run-checks',

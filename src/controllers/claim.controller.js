@@ -39,7 +39,7 @@ async function confirmClaim(req, res, next) {
 async function correctClaim(req, res, next) {
   try {
     const { newValue, reason } = req.body;
-    const claim = await claimService.correctClaim(
+    const result = await claimService.correctClaim(
       req.user,
       req.params.claimId,
       { newValue, reason },
@@ -49,7 +49,8 @@ async function correctClaim(req, res, next) {
     res.status(200).json({
       success: true,
       message: 'Claim corrected successfully',
-      data: claim
+      data: result.claim || result,
+      partialReverify: result.partialReverify
     });
   } catch (err) {
     next(err);

@@ -100,7 +100,18 @@ const applicationSchema = new mongoose.Schema(
     decision: {
       outcome: {
         type: String,
-        enum: ['ACCEPT_SCRUTINY', 'REQUEST_CLARIFICATION', 'REFER_FOR_INSPECTION', 'RECOMMEND_ADVERSE_ACTION', null],
+        enum: [
+          'ACCEPT_SCRUTINY',
+          'REQUEST_CLARIFICATION',
+          'REFER_FOR_INSPECTION',
+          'RECOMMEND_ADVERSE_ACTION',
+          'RECOMMEND_APPROVAL',
+          'RECOMMEND_REJECTION',
+          'RECOMMEND_DEFICIENCY_LETTER',
+          'APPROVE',
+          'REJECT',
+          null
+        ],
         default: null
       },
       reason: { type: String, default: null },

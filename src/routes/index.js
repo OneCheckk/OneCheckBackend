@@ -24,6 +24,9 @@ router.use('/documents', documentRoutes);
 router.use('/claims', claimRoutes);
 router.use('/findings', findingRoutes);
 router.use('/ledger', ledgerRoutes);
+
+const letterRoutes = require('./letter.routes');
+router.use('/letters', letterRoutes);
 router.use('/faculty', facultyRoutes);
 router.use('/forensics', forensicsRoutes);
 router.use('/score', scoreRoutes);

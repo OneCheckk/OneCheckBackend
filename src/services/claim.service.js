@@ -147,7 +147,63 @@ async function correctClaim(user, claimId, { newValue, reason }, requestId = nul
     }
   });
 
-  return claim;
+  // Partial re-verification
+  let partialReverify = null;
+  try {
+    const mlClient = require('./mlClient.service');
+    const { computeApplicationSummary } = require('./summary.service');
+    const { getInstitutionRecords } = require('../adapters/records/syntheticRecords');
+    const { computeClaimsKey } = require('./reconciliation.service');
+    const { Finding } = require('../models');
+
+    const rulesIndex = await mlClient.getRulesIndex(application.rulepackVersion || '2026.1-demo');
+    const affectedRules = (rulesIndex?.predicates && rulesIndex.predicates[claim.predicate]) || [];
+
+    if (affectedRules.length > 0) {
+      const allClaims = await Claim.find({ applicationId: application._id });
+      const recordsRes = await getInstitutionRecords(application.institution?.aicteId || 'AICTE-DEMO-01');
+
+      const reconcileRes = await mlClient.reconcile({
+        applicationId: application._id.toString(),
+        claims: allClaims,
+        records: recordsRes.bundle,
+        onlyRules: affectedRules
+      });
+
+      // Update or close affected findings
+      for (const ruleId of affectedRules) {
+        const returnedFinding = (reconcileRes.findings || []).find((f) => f.ruleId === ruleId);
+        if (!returnedFinding) {
+          // Rule passed now! If there was an open finding for this rule, mark it RESOLVED
+          await Finding.updateMany(
+            { applicationId: application._id, ruleId, 'disposition.state': 'OPEN' },
+            { $set: { status: 'VERIFIED', 'disposition.state': 'RESOLVED', state: 'RESOLVED' } }
+          );
+        } else {
+          // Finding remains
+          const claimsKey = computeClaimsKey(ruleId, returnedFinding.claimIds || []);
+          const existing = await Finding.findOne({ applicationId: application._id, ruleId, claimsKey });
+          if (existing && existing.disposition?.state === 'OPEN') {
+            existing.proof = returnedFinding.proof;
+            existing.message = returnedFinding.message;
+            existing.severity = returnedFinding.severity;
+            await existing.save();
+          }
+        }
+      }
+
+      const summary = await computeApplicationSummary(application._id);
+      partialReverify = {
+        rulesRerun: affectedRules,
+        rulesTotal: 12,
+        summary
+      };
+    }
+  } catch (_) {
+    // Non-fatal if index unavailable
+  }
+
+  return { claim, partialReverify };
 }
 
 module.exports = {
