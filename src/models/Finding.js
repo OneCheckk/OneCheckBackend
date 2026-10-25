@@ -123,6 +123,26 @@ const findingSchema = new mongoose.Schema(
       type: String,
       default: null
     },
+    disposition: {
+      state: {
+        type: String,
+        enum: ['OPEN', 'ACCEPTED', 'DISMISSED', 'CLARIFICATION_REQUESTED', 'RESOLVED'],
+        default: 'OPEN'
+      },
+      dispositionedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        default: null
+      },
+      dispositionedAt: {
+        type: Date,
+        default: null
+      },
+      reason: {
+        type: String,
+        default: null
+      }
+    },
     claimsKey: {
       type: String,
       default: '',

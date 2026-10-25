@@ -84,6 +84,22 @@ router.get(
   claimController.getClaimsByApplication
 );
 
+// Spec: GET /api/applications/:id/findings (scoped)
+const findingController = require('../controllers/finding.controller');
+router.get(
+  '/:id/findings',
+  authenticate,
+  findingController.getFindingsByApplication
+);
+
+// Spec: POST /api/applications/:id/reconcile (INSTITUTION / OFFICER / ADMIN)
+router.post(
+  '/:id/reconcile',
+  authenticate,
+  authorize('INSTITUTION_USER', 'INSTITUTION', 'OFFICER', 'SCRUTINY_OFFICER', 'REGIONAL_DIRECTOR', 'ADMIN'),
+  findingController.triggerReconcile
+);
+
 // Canonical: POST /api/applications/:id/run-checks (OFFICER / ADMIN)
 router.post(
   '/:id/run-checks',

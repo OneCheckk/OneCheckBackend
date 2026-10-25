@@ -10,6 +10,7 @@ const scoreRoutes = require('./score.routes');
 const alertRoutes = require('./alert.routes');
 const dashboardRoutes = require('./dashboard.routes');
 const claimRoutes = require('./claim.routes');
+const findingRoutes = require('./finding.routes');
 
 const router = express.Router();
 
@@ -20,6 +21,7 @@ router.use('/institutions', institutionRoutes);
 router.use('/applications', applicationRoutes);
 router.use('/documents', documentRoutes);
 router.use('/claims', claimRoutes);
+router.use('/findings', findingRoutes);
 router.use('/faculty', facultyRoutes);
 router.use('/forensics', forensicsRoutes);
 router.use('/score', scoreRoutes);

@@ -206,11 +206,12 @@ async function onAnalyzeDocFailed(payload, error) {
 }
 
 /**
- * Placeholder for RECONCILE_APP (implemented in Stage 6)
+ * Handler: RECONCILE_APP
+ * Runs cross-document and regulatory record reconciliation
  */
 async function handleReconcileApp(payload) {
-  logger.info(`RECONCILE_APP called for app ${payload.applicationId}`);
-  return { success: true };
+  const { reconcileApplication } = require('./reconciliation.service');
+  return reconcileApplication(payload.applicationId);
 }
 
 /**
