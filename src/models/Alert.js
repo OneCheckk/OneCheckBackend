@@ -7,9 +7,15 @@ const alertSchema = new mongoose.Schema(
       ref: 'Application',
       required: [true, 'Application reference is required']
     },
+    applicationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Application',
+      default: null
+    },
     runId: {
       type: String,
-      required: [true, 'Run identifier is required'],
+      required: false,
+      default: null,
       trim: true
     },
     type: {
@@ -21,14 +27,15 @@ const alertSchema = new mongoose.Schema(
     severity: {
       type: String,
       enum: {
-        values: ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
-        message: 'Severity must be LOW, MEDIUM, HIGH, or CRITICAL'
+        values: ['INFO', 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'],
+        message: 'Severity must be INFO, LOW, MEDIUM, HIGH, or CRITICAL'
       },
       required: [true, 'Alert severity is required']
     },
     title: {
       type: String,
-      required: [true, 'Alert title is required'],
+      required: false,
+      default: 'System Compliance Alert',
       trim: true
     },
     message: {
@@ -36,14 +43,45 @@ const alertSchema = new mongoose.Schema(
       required: [true, 'Alert message is required'],
       trim: true
     },
+    refType: {
+      type: String,
+      default: null
+    },
+    refId: {
+      type: String,
+      default: null
+    },
+    dueAt: {
+      type: Date,
+      default: null
+    },
+    raisedAt: {
+      type: Date,
+      default: Date.now
+    },
+    ackedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    ackedAt: {
+      type: Date,
+      default: null
+    },
+    audience: {
+      type: [String],
+      default: ['SCRUTINY_OFFICER', 'REGIONAL_DIRECTOR']
+    },
     sourceModel: {
       type: String,
-      enum: ['Document', 'FacultyHash', 'InfraPhoto', 'Application'],
-      required: [true, 'Source model is required']
+      enum: ['Document', 'FacultyHash', 'InfraPhoto', 'Application', 'Finding', 'VerificationEntry', null],
+      required: false,
+      default: 'Application'
     },
     sourceId: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: [true, 'Source identifier is required']
+      type: mongoose.Schema.Types.Mixed,
+      required: false,
+      default: null
     },
     status: {
       type: String,

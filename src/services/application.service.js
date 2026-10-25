@@ -53,11 +53,11 @@ async function generateUniqueApplicationNumber() {
 async function createApplication(user, data, requestId = null) {
   let targetInstitutionId;
 
-  if (user.role === 'INSTITUTION_USER') {
-    if (!user.institution) {
+  if (user.role === 'INSTITUTION_USER' || user.role === 'INSTITUTION') {
+    if (!user.institution && !user.institutionId) {
       throw ApiError.badRequest('No institution profile is associated with this user account. Create an institution first.');
     }
-    targetInstitutionId = user.institution._id || user.institution;
+    targetInstitutionId = user.institution?._id || user.institution || user.institutionId;
   } else if (user.role === 'ADMIN') {
     if (!data.institutionId) {
       throw ApiError.badRequest('institutionId is required when creating an application as administrator.');
@@ -75,9 +75,11 @@ async function createApplication(user, data, requestId = null) {
 
   const application = await Application.create({
     applicationNumber,
+    appNo: applicationNumber,
     institution: targetInstitutionId,
+    institutionId: targetInstitutionId,
     category: data.category.trim(),
-    academicYear: data.academicYear.trim(),
+    academicYear: data.academicYear ? data.academicYear.trim() : '2026-2027',
     status: 'DRAFT'
   });
 
@@ -102,8 +104,8 @@ async function listApplications(user, query) {
   const filter = {};
 
   // Scope: Institution users can ONLY see applications belonging to their institution
-  if (user.role === 'INSTITUTION_USER') {
-    const instId = user.institution?._id || user.institution;
+  if (user.role === 'INSTITUTION_USER' || user.role === 'INSTITUTION') {
+    const instId = user.institution?._id || user.institution || user.institutionId;
     if (!instId) {
       return { applications: [], pagination: buildPaginationMeta(1, 20, 0) };
     }
@@ -169,9 +171,9 @@ async function getApplicationById(user, applicationId) {
   }
 
   // Role & ownership check
-  if (user.role === 'INSTITUTION_USER') {
-    const userInstId = user.institution?._id || user.institution;
-    const appInstId = application.institution?._id || application.institution;
+  if (user.role === 'INSTITUTION_USER' || user.role === 'INSTITUTION') {
+    const userInstId = user.institution?._id || user.institution || user.institutionId;
+    const appInstId = application.institution?._id || application.institution || application.institutionId;
     if (!userInstId || userInstId.toString() !== appInstId.toString()) {
       throw ApiError.forbidden('Access denied: You do not have permission to access this application.');
     }
@@ -205,9 +207,10 @@ async function updateApplication(user, applicationId, updateData, requestId = nu
   }
 
   // Ownership verification
-  if (user.role === 'INSTITUTION_USER') {
-    const userInstId = user.institution?._id || user.institution;
-    if (!userInstId || userInstId.toString() !== application.institution.toString()) {
+  if (user.role === 'INSTITUTION_USER' || user.role === 'INSTITUTION') {
+    const userInstId = user.institution?._id || user.institution || user.institutionId;
+    const appInstId = application.institution?._id || application.institution || application.institutionId;
+    if (!userInstId || userInstId.toString() !== appInstId.toString()) {
       throw ApiError.forbidden('Access denied: You cannot edit another institution\'s application.');
     }
 
@@ -249,9 +252,10 @@ async function submitApplication(user, applicationId, requestId = null) {
   }
 
   // Ownership verification
-  if (user.role === 'INSTITUTION_USER') {
-    const userInstId = user.institution?._id || user.institution;
-    if (!userInstId || userInstId.toString() !== application.institution.toString()) {
+  if (user.role === 'INSTITUTION_USER' || user.role === 'INSTITUTION') {
+    const userInstId = user.institution?._id || user.institution || user.institutionId;
+    const appInstId = application.institution?._id || application.institution || application.institutionId;
+    if (!userInstId || userInstId.toString() !== appInstId.toString()) {
       throw ApiError.forbidden('Access denied: You can only submit applications for your own institution.');
     }
   }

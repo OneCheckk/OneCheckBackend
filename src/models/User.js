@@ -25,12 +25,25 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['ADMIN', 'OFFICER', 'INSTITUTION_USER'],
-        message: 'Role must be ADMIN, OFFICER, or INSTITUTION_USER'
+        values: [
+          'ADMIN',
+          'OFFICER',
+          'INSTITUTION_USER',
+          'INSTITUTION',
+          'SCRUTINY_OFFICER',
+          'REGIONAL_DIRECTOR',
+          'AUDITOR'
+        ],
+        message: 'Invalid user role'
       },
       required: [true, 'Role is required']
     },
     institution: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Institution',
+      default: null
+    },
+    institutionId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Institution',
       default: null
