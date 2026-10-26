@@ -17,7 +17,8 @@ const {
   Letter,
   AicteRecord,
   IssuerRegistry,
-  AuditEvent
+  AuditEvent,
+  FacultyHash
 } = require('./models');
 const logger = require('./config/logger');
 const { logEvent } = require('./services/audit.service');
@@ -912,6 +913,61 @@ async function seedDatabase(uri) {
           ],
         });
       }
+    }
+
+    // ---------------------------------------------------------
+    // 8b. Seed Faculty Hashes for Duplication Collision Detection
+    // ---------------------------------------------------------
+    const { generateIdentifierHmac } = require('./utils/hmac');
+    const app1 = appMap['APP-2026-000101'];
+    const app3 = appMap['APP-2026-000301'];
+    if (app1 && app3) {
+      const { hmac: hmacSharma } = generateIdentifierHmac('112233445566');
+      const { hmac: hmacVerma } = generateIdentifierHmac('987654321098');
+
+      const facultySeeds = [
+        {
+          application: app1._id,
+          institution: app1.institution,
+          nameNormalized: 'dr. ramesh sharma',
+          identifierType: 'AADHAAR',
+          identifierHmac: hmacSharma,
+          keyVersion: 'v1',
+          isGhostFlagged: false
+        },
+        {
+          application: app1._id,
+          institution: app1.institution,
+          nameNormalized: 'dr. k. s. verma',
+          identifierType: 'AADHAAR',
+          identifierHmac: hmacVerma,
+          keyVersion: 'v1',
+          isGhostFlagged: false
+        },
+        {
+          application: app3._id,
+          institution: app3.institution,
+          nameNormalized: 'dr. k. s. verma',
+          identifierType: 'AADHAAR',
+          identifierHmac: hmacVerma,
+          keyVersion: 'v1',
+          isGhostFlagged: true,
+          matchInstitution: app1.institution,
+          matchApplication: app1._id,
+          matchConfidence: 1.0
+        }
+      ];
+
+      for (const fs of facultySeeds) {
+        const existing = await FacultyHash.findOne({
+          application: fs.application,
+          identifierHmac: fs.identifierHmac
+        });
+        if (!existing) {
+          await FacultyHash.create(fs);
+        }
+      }
+      logger.info('Seeded FacultyHash records with cross-institution collision');
     }
 
     // ---------------------------------------------------------

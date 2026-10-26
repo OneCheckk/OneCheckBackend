@@ -157,7 +157,7 @@ router.get('/:id/runs/:runId', authenticate, checkRunController.getRunStatus);
 
 // Helper for scoped application resolution
 const mongoose = require('mongoose');
-const { Application, Finding, Document, InfraPhoto, RiskScore } = require('../models');
+const { Application, Finding, Document, InfraPhoto, RiskScore, FacultyHash } = require('../models');
 const ApiError = require('../utils/ApiError');
 
 async function findScopedApplication(id, user) {
@@ -242,6 +242,7 @@ router.get(
       const application = await findScopedApplication(req.params.id, req.user);
       const documents = await Document.find({ application: application._id });
       const photos = await InfraPhoto.find({ application: application._id });
+      const faculty = await FacultyHash.find({ application: application._id }).populate('matchInstitution', 'name');
 
       const docForensics = documents.map((doc) => {
         const isSuspected = (doc.analysis?.forensics && doc.analysis.forensics.some((f) => f.suspected)) || false;
@@ -285,6 +286,14 @@ router.get(
             geofenceStatus: p.geofenceStatus,
             distanceFromCampus: p.distanceFromCampus,
             imageHash: p.imageHash
+          })),
+          faculty: faculty.map((f) => ({
+            id: f._id,
+            nameNormalized: f.nameNormalized,
+            identifierType: f.identifierType,
+            isGhostFlagged: f.isGhostFlagged,
+            matchInstitutionName: f.matchInstitution?.name || null,
+            matchConfidence: f.matchConfidence
           }))
         }
       });
